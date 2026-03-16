@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bsv-brc"
+version = "0.1.0"
+description = "Python implementations of BSV BRC protocols — BRC-52 (identity certificates), BRC-94 (verifiable key linkage), BRC-105 (HTTP micropayments)"
+readme = "README.md"
+license = {text = "Open BSV License"}
+requires-python = ">=3.10"
+keywords = ["bsv", "brc-52", "brc-94", "brc-105", "identity", "certificates", "micropayments", "402", "schnorr", "secp256k1"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Security :: Cryptography",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "coincurve>=18.0",
+    "pycryptodomex>=3.19",
+    "ecdsa>=0.18",
+]
+
+[project.optional-dependencies]
+starlette = ["starlette>=0.27"]
+dev = ["pytest>=7.0", "pytest-asyncio>=0.21", "httpx>=0.24"]
+
+[project.urls]
+Repository = "https://github.com/datamynt/bsv-brc-python"
+Issues = "https://github.com/datamynt/bsv-brc-python/issues"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
