@@ -11,9 +11,8 @@ import base64
 import hashlib
 import struct
 
-from ecdsa import SigningKey, VerifyingKey, SECP256k1
-from ecdsa.util import sigencode_der, sigdecode_der
-import coincurve
+from bsv import PrivateKey, PublicKey
+from bsv.curve import curve, curve_multiply, curve_add
 
 from bsv_brc.crypto import keys
 
@@ -101,8 +100,10 @@ def sign(
     )
 
     cert_hash = hashlib.sha256(cert_binary).digest()
-    sk = SigningKey.from_string(derived_priv, curve=SECP256k1)
-    return sk.sign_digest(cert_hash, sigencode=sigencode_der).hex()
+    sk = PrivateKey(derived_priv)
+    # Sign the pre-computed hash — use identity hasher so SDK doesn't double-hash
+    sig = sk.sign(cert_hash, hasher=lambda x: x)
+    return sig.hex()
 
 
 def verify_signature(
@@ -122,18 +123,18 @@ def verify_signature(
     inv = keys.invoice_number(2, "certificate signature", key_id)
     h = keys._hmac_sha256(certifier_public_key, inv)
 
-    pub_obj = coincurve.PublicKey(certifier_public_key)
-    derived_pub = pub_obj.add(h)
-    derived_pub_uncompressed = derived_pub.format(compressed=False)
+    h_int = int.from_bytes(h, "big")
+    pub = PublicKey(certifier_public_key)
+    h_point = curve_multiply(h_int, curve.g)
+    derived_pub_point = curve_add(pub.point(), h_point)
+    derived_pub = PublicKey(derived_pub_point)
 
     cert_hash = hashlib.sha256(cert_binary).digest()
-    vk = VerifyingKey.from_string(derived_pub_uncompressed[1:], curve=SECP256k1)
 
     try:
-        vk.verify_digest(
-            bytes.fromhex(signature_hex), cert_hash, sigdecode=sigdecode_der
+        return derived_pub.verify(
+            bytes.fromhex(signature_hex), cert_hash, hasher=lambda x: x
         )
-        return True
     except Exception:
         return False
 

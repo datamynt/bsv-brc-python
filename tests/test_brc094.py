@@ -2,7 +2,8 @@
 
 import os
 
-import coincurve
+from bsv import PrivateKey, PublicKey
+from bsv.curve import curve_multiply, curve
 
 from bsv_brc.brc094 import (
     generate_proof,
@@ -14,7 +15,7 @@ from bsv_brc.brc094 import (
 
 def _random_keypair() -> tuple[bytes, bytes]:
     priv = os.urandom(32)
-    pub = coincurve.PrivateKey(priv).public_key.format(compressed=True)
+    pub = PrivateKey(priv).public_key().serialize()
     return priv, pub
 
 
@@ -55,10 +56,13 @@ class TestSchnorrProof:
 
         S, R, S_prime, z = generate_proof(alice_priv, bob_pub)
 
-        # Use a different shared secret
-        fake_S = coincurve.PublicKey(bob_pub).multiply(os.urandom(32)).format(
-            compressed=True
-        )
+        # Use a different shared secret — multiply bob_pub by a random scalar
+        random_scalar = int.from_bytes(os.urandom(32), "big") % curve.n
+        if random_scalar == 0:
+            random_scalar = 1
+        bob_point = PublicKey(bob_pub).point()
+        fake_point = curve_multiply(random_scalar, bob_point)
+        fake_S = PublicKey(fake_point).serialize()
         assert not verify_proof(alice_pub, bob_pub, fake_S, R, S_prime, z)
 
     def test_ecdh_symmetry(self):

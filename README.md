@@ -1,7 +1,7 @@
 # bsv-brc
 
 Python implementations of [BSV BRC protocols](https://bsv.brc.dev).
-The higher-level protocol companion to [bsv-sdk](https://pypi.org/project/bsv-sdk/).
+The higher-level protocol companion to [py-sdk](https://github.com/bsv-blockchain/py-sdk) (`bsv-sdk` on PyPI).
 
 While `bsv-sdk` handles transactions, keys, and SPV — `bsv-brc` implements the
 protocol layer: identity certificates, verifiable key linkage, and HTTP micropayments.

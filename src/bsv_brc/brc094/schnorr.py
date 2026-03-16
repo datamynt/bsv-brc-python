@@ -22,29 +22,43 @@ Verification:
 import hashlib
 import os
 
-import coincurve
+from bsv import PrivateKey, PublicKey
+from bsv.curve import curve, curve_multiply, curve_add, Point
 
 from bsv_brc.crypto.keys import SECP256K1_N
 
 
+def _point_to_bytes(point: Point) -> bytes:
+    """Serialize a curve Point to 33-byte compressed format."""
+    return PublicKey(point).serialize()
+
+
+def _bytes_to_point(data: bytes) -> Point:
+    """Deserialize 33-byte compressed public key to a Point."""
+    return PublicKey(data).point()
+
+
 def _point_add(p1: bytes, p2: bytes) -> bytes:
     """Add two compressed public key points."""
-    pub = coincurve.PublicKey(p1)
-    # coincurve.PublicKey.combine requires a list of PublicKey objects
-    return coincurve.PublicKey.combine_keys(
-        [pub, coincurve.PublicKey(p2)]
-    ).format(compressed=True)
+    pt1 = _bytes_to_point(p1)
+    pt2 = _bytes_to_point(p2)
+    result = curve_add(pt1, pt2)
+    return _point_to_bytes(result)
 
 
 def _scalar_mult(scalar: bytes, point: bytes) -> bytes:
     """Multiply a compressed point by a scalar."""
-    pub = coincurve.PublicKey(point)
-    return pub.multiply(scalar).format(compressed=True)
+    scalar_int = int.from_bytes(scalar, "big")
+    pt = _bytes_to_point(point)
+    result = curve_multiply(scalar_int, pt)
+    return _point_to_bytes(result)
 
 
 def _scalar_mult_g(scalar: bytes) -> bytes:
     """Multiply the generator G by a scalar (= compute public key)."""
-    return coincurve.PrivateKey(scalar).public_key.format(compressed=True)
+    scalar_int = int.from_bytes(scalar, "big")
+    result = curve_multiply(scalar_int, curve.g)
+    return _point_to_bytes(result)
 
 
 def _compute_challenge(

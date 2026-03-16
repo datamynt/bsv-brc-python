@@ -1,13 +1,13 @@
 """Tests for BRC-42/43 key derivation."""
 
 import os
-import coincurve
+from bsv import PrivateKey
 from bsv_brc.crypto import keys
 
 
 def make_keypair():
     priv = os.urandom(32)
-    pub = coincurve.PrivateKey(priv).public_key.format(compressed=True)
+    pub = PrivateKey(priv).public_key().serialize()
     return priv, pub
 
 
@@ -86,7 +86,7 @@ class TestDeriveSigningKey:
         derived_priv, derived_pub = keys.derive_signing_key(
             priv, 2, "test", "key1"
         )
-        expected_pub = coincurve.PrivateKey(derived_priv).public_key.format(compressed=True)
+        expected_pub = PrivateKey(derived_priv).public_key().serialize()
         assert derived_pub == expected_pub
 
 

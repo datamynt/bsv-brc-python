@@ -3,7 +3,7 @@
 import base64
 import os
 
-import coincurve
+from bsv import PrivateKey
 import pytest
 from bsv_brc.brc052 import certificate, encrypt, decrypt
 from bsv_brc.crypto import keys
@@ -11,7 +11,7 @@ from bsv_brc.crypto import keys
 
 def make_keypair():
     priv = os.urandom(32)
-    pub = coincurve.PrivateKey(priv).public_key.format(compressed=True)
+    pub = PrivateKey(priv).public_key().serialize()
     return priv, pub
 
 

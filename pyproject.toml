@@ -17,9 +17,8 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
-    "coincurve>=18.0",
+    "bsv-sdk>=1.0.0",
     "pycryptodomex>=3.19",
-    "ecdsa>=0.18",
 ]
 
 [project.optional-dependencies]
