@@ -377,11 +377,12 @@ class TestBuildResponsePreimage:
             body=b"",
         )
         # Only x-bsv-custom should appear
+        # x-bsv-custom is 12 bytes → 0x0c
         expected = (
             rid_raw
             + b"\xc8"  # 200
             + b"\x01"  # 1 header
-            + b"\x0bx-bsv-custom"
+            + b"\x0cx-bsv-custom"
             + b"\x03yes"
             + VARINT_NEG_ONE
         )
