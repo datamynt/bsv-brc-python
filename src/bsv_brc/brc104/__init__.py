@@ -34,8 +34,20 @@ from bsv_brc.brc104.core.headers import (
     AUTH_HEADER_PREFIX,
     ALL_AUTH_HEADERS,
 )
+from bsv_brc.brc104.core.preimage import (
+    VARINT_NEG_ONE,
+    REQUEST_ID_LEN,
+    encode_varint,
+    encode_string,
+    normalize_content_type,
+    filter_request_headers,
+    filter_response_headers,
+    build_request_preimage,
+    build_response_preimage,
+)
 
 __all__ = [
+    # headers
     "BRC104_VERSION",
     "WELL_KNOWN_AUTH_PATH",
     "HEADER_VERSION",
@@ -48,4 +60,14 @@ __all__ = [
     "HEADER_REQUESTED_CERTIFICATES",
     "AUTH_HEADER_PREFIX",
     "ALL_AUTH_HEADERS",
+    # preimage
+    "VARINT_NEG_ONE",
+    "REQUEST_ID_LEN",
+    "encode_varint",
+    "encode_string",
+    "normalize_content_type",
+    "filter_request_headers",
+    "filter_response_headers",
+    "build_request_preimage",
+    "build_response_preimage",
 ]
