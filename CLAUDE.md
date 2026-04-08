@@ -30,9 +30,13 @@ pytest -v
 
 ## Dependencies
 
-bsv-sdk (BSV protocol primitives — secp256k1, signing, key derivation),
-pycryptodomex (AES-256-GCM).
-Optional: starlette (middleware extra).
+`bsv-sdk` on PyPI (source: [`bsv-blockchain/py-sdk`](https://github.com/bsv-blockchain/py-sdk))
+— BSV protocol primitives: secp256k1, signing, key derivation.
+Note: not to be confused with `@bsv/sdk` on npm, which is the TypeScript SDK.
+
+`pycryptodomex` — AES-256-GCM.
+
+Optional: `starlette` (middleware extra).
 
 ## Design
 
