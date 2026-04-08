@@ -1,5 +1,10 @@
 # bsv-brc
 
+[![PyPI version](https://img.shields.io/pypi/v/bsv-brc.svg)](https://pypi.org/project/bsv-brc/)
+[![Python versions](https://img.shields.io/pypi/pyversions/bsv-brc.svg)](https://pypi.org/project/bsv-brc/)
+[![Tests](https://github.com/datamynt/bsv-brc-python/actions/workflows/test.yml/badge.svg)](https://github.com/datamynt/bsv-brc-python/actions/workflows/test.yml)
+[![License](https://img.shields.io/badge/license-Open%20BSV-blue.svg)](LICENSE)
+
 Python implementations of [BSV BRC protocols](https://bsv.brc.dev).
 The higher-level protocol companion to [py-sdk](https://github.com/bsv-blockchain/py-sdk) (`bsv-sdk` on PyPI).
 
