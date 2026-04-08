@@ -65,10 +65,72 @@ def build_key_id(counterparty_nonce: str, sender_nonce: str) -> str:
     return f"{counterparty_nonce} {sender_nonce}"
 
 
-# Sign / verify functions are intentionally not yet implemented.
-# They depend on a wallet abstraction (wallet.create_signature /
-# wallet.verify_signature) that we have not yet decided how to surface
-# in `bsv-brc`. The decision is whether to:
-#   (a) require users to pass in a `bsv-sdk` wallet object, or
-#   (b) provide a thin wallet shim built on bsv-sdk's primitives.
-# See ROADMAP.md.
+from bsv_brc.brc103.wallet import Wallet
+
+
+def sign_message(
+    wallet: Wallet,
+    payload: bytes,
+    counterparty_identity_key: str,
+    counterparty_nonce: str,
+    sender_nonce: str,
+) -> bytes:
+    """
+    Sign a BRC-103 message payload.
+
+    Args:
+        wallet: Any object satisfying the `Wallet` Protocol. The signer's
+            identity key is whatever this wallet wraps.
+        payload: The bytes to sign — typically the BRC-104 pre-image
+            from `bsv_brc.brc104.core.preimage.build_request_preimage`
+            or `build_response_preimage`.
+        counterparty_identity_key: Hex-encoded compressed public key of
+            the OTHER party (the recipient/verifier).
+        counterparty_nonce: The other party's most recent nonce (base64).
+        sender_nonce: This party's fresh nonce for this message (base64).
+
+    Returns:
+        DER-encoded ECDSA signature bytes.
+    """
+    return wallet.create_signature(
+        data=payload,
+        protocol_id=AUTH_PROTOCOL_ID,
+        security_level=AUTH_SECURITY_LEVEL,
+        key_id=build_key_id(counterparty_nonce, sender_nonce),
+        counterparty=counterparty_identity_key,
+    )
+
+
+def verify_message(
+    wallet: Wallet,
+    payload: bytes,
+    signature: bytes,
+    counterparty_identity_key: str,
+    key_id: str,
+) -> bool:
+    """
+    Verify a BRC-103 message signature.
+
+    Args:
+        wallet: The verifier's wallet (its identity key receives the message).
+        payload: The reconstructed BRC-104 pre-image bytes.
+        signature: DER-encoded ECDSA signature received on the wire.
+        counterparty_identity_key: Hex-encoded compressed public key of
+            the SIGNER.
+        key_id: The exact key ID string the signer used, taken
+            verbatim from the wire (`"<counterparty_nonce> <sender_nonce>"`
+            from the signer's perspective). Pass it through unchanged —
+            do not try to swap nonce order on the verifier side.
+
+    Returns:
+        True iff the signature is valid for `payload` under
+        `counterparty_identity_key` and `key_id`.
+    """
+    return wallet.verify_signature(
+        data=payload,
+        signature=signature,
+        protocol_id=AUTH_PROTOCOL_ID,
+        security_level=AUTH_SECURITY_LEVEL,
+        key_id=key_id,
+        counterparty=counterparty_identity_key,
+    )

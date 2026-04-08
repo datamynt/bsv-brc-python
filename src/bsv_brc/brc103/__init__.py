@@ -12,6 +12,14 @@ Reference: https://bsv.brc.dev/peer-to-peer/0103
 """
 
 from bsv_brc.brc103.nonce import generate_nonce, is_valid_nonce
+from bsv_brc.brc103.signing import (
+    AUTH_PROTOCOL_ID,
+    AUTH_SECURITY_LEVEL,
+    build_key_id,
+    sign_message,
+    verify_message,
+)
+from bsv_brc.brc103.wallet import PrivateKeyWallet, Wallet
 from bsv_brc.brc103.types import (
     AuthMessage,
     RequestedCertificates,
@@ -26,6 +34,13 @@ from bsv_brc.brc103.types import (
 __all__ = [
     "generate_nonce",
     "is_valid_nonce",
+    "AUTH_PROTOCOL_ID",
+    "AUTH_SECURITY_LEVEL",
+    "build_key_id",
+    "sign_message",
+    "verify_message",
+    "Wallet",
+    "PrivateKeyWallet",
     "AuthMessage",
     "RequestedCertificates",
     "Session",
