@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "bsv-brc"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python implementations of BSV BRC protocols — BRC-52 (identity certificates), BRC-94 (verifiable key linkage), BRC-105 (HTTP micropayments)"
 readme = "README.md"
 license = {text = "Open BSV License"}
