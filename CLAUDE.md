@@ -30,8 +30,9 @@ pytest -v
 
 ## Dependencies
 
-coincurve (libsecp256k1), pycryptodomex (AES), ecdsa (signing).
-Optional: starlette (middleware).
+bsv-sdk (BSV protocol primitives — secp256k1, signing, key derivation),
+pycryptodomex (AES-256-GCM).
+Optional: starlette (middleware extra).
 
 ## Design
 
