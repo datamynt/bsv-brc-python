@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [master]
 
+env:
+  # Opt into Node.js 24 for actions/checkout, actions/setup-python, etc.
+  # GitHub is deprecating Node 20 by September 2026; opting in early
+  # silences the deprecation warning and ensures forward compatibility.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   test:
     runs-on: ubuntu-latest
