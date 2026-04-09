@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "bsv-brc"
-version = "0.1.1"
-description = "Python implementations of BSV BRC protocols — BRC-52 (identity certificates), BRC-94 (verifiable key linkage), BRC-105 (HTTP micropayments)"
+version = "0.2.0"
+description = "Framework adapters for the official bsv.auth (BRC-103/104) plus BRC-52, BRC-94 and the BRC-105 HTTP micropayment layer"
 readme = "README.md"
 license = {text = "Open BSV License"}
 requires-python = ">=3.10"
@@ -17,7 +17,8 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
-    "bsv-sdk>=1.0.0",
+    "bsv-sdk>=2.0.0b1",
+    "typing_extensions>=4.0",
     "pycryptodomex>=3.19",
 ]
 
