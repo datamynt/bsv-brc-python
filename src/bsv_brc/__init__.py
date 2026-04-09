@@ -7,4 +7,4 @@ BRC-105: HTTP service monetization framework (402 micropayments)
 Compatible with @bsv/sdk (TypeScript) and brc52-python.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

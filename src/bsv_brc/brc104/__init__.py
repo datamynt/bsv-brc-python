@@ -1,21 +1,24 @@
 """
 BRC-104: HTTP Transport for BRC-103 Mutual Authentication.
 
-This package wraps the BRC-103 protocol in HTTP. It is structured as
-two layers:
+As of bsv-brc 0.2.0 the BRC-103/104 protocol logic itself lives in the
+official `bsv.auth` module shipped by `bsv-sdk>=2.0.0b1`. This package
+no longer reimplements the wire format. Instead it provides:
 
-- `bsv_brc.brc104.core` — pure, framework-agnostic HTTP logic
-  (header constants, signing pre-image construction, session glue).
-  Knows nothing about Starlette/Django/Flask.
+- `bsv_brc.brc104.core.headers` — header name constants, kept here so
+  framework adapters can reference them without importing the whole
+  bsv.auth surface.
+- `bsv_brc.brc104.adapters` — per-framework adapters (ASGI/WSGI/...)
+  that wrap `bsv.auth.Peer` for Starlette, FastAPI, FastHTML, Litestar,
+  Django and Flask.
 
-- `bsv_brc.brc104.adapters` — thin per-framework adapters that
-  translate framework-specific request/response objects to and from
-  the pure core. One adapter per supported framework family.
+For low-level wire-format work import directly from `bsv.auth`:
 
-To use BRC-104 in your app, import the adapter for your framework:
-
-    from bsv_brc.brc104.adapters.asgi import AuthMiddleware
-    # or .django, .flask, etc.
+    from bsv.auth import Peer, AuthMessage, SessionManager
+    from bsv.auth.transports.simplified_http_transport import (
+        SimplifiedHTTPTransport,
+    )
+    from bsv.auth.clients.auth_fetch import AuthFetch
 
 Reference: https://bsv.brc.dev/peer-to-peer/0104
 """
@@ -34,20 +37,8 @@ from bsv_brc.brc104.core.headers import (
     AUTH_HEADER_PREFIX,
     ALL_AUTH_HEADERS,
 )
-from bsv_brc.brc104.core.preimage import (
-    VARINT_NEG_ONE,
-    REQUEST_ID_LEN,
-    encode_varint,
-    encode_string,
-    normalize_content_type,
-    filter_request_headers,
-    filter_response_headers,
-    build_request_preimage,
-    build_response_preimage,
-)
 
 __all__ = [
-    # headers
     "BRC104_VERSION",
     "WELL_KNOWN_AUTH_PATH",
     "HEADER_VERSION",
@@ -60,14 +51,4 @@ __all__ = [
     "HEADER_REQUESTED_CERTIFICATES",
     "AUTH_HEADER_PREFIX",
     "ALL_AUTH_HEADERS",
-    # preimage
-    "VARINT_NEG_ONE",
-    "REQUEST_ID_LEN",
-    "encode_varint",
-    "encode_string",
-    "normalize_content_type",
-    "filter_request_headers",
-    "filter_response_headers",
-    "build_request_preimage",
-    "build_response_preimage",
 ]
