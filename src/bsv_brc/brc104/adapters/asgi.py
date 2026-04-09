@@ -538,6 +538,20 @@ class AuthMiddleware:
             await _send_json(send, 401, {"error": str(err)})
             return
 
+        # Propagate the verified peer identity into ASGI scope so the
+        # downstream application can authorise off it without redoing
+        # any crypto work. We attach a fresh dict on a copy of the
+        # scope rather than mutating the caller's, since starlette
+        # caches scope values across middleware in some setups.
+        scope = dict(scope)
+        scope["bsv_auth"] = {
+            "identity_key": identity_key_hex,
+            "client_nonce": nonce_b64,
+            "server_nonce": your_nonce,
+            "request_id": request_id_b64,
+            "version": version,
+        }
+
         # Run the wrapped app and buffer its response so we can sign it.
         captured_response: dict = {"status": 200, "headers": [], "body": bytearray()}
         body_consumed = False

@@ -29,8 +29,15 @@ def _hello(_request):
     return PlainTextResponse("hello")
 
 
+def _whoami(request):
+    auth = request.scope.get("bsv_auth")
+    if not auth:
+        return PlainTextResponse("anonymous")
+    return PlainTextResponse(auth["identity_key"])
+
+
 def _make_app() -> Starlette:
-    return Starlette(routes=[Route("/", _hello)])
+    return Starlette(routes=[Route("/", _hello), Route("/whoami", _whoami)])
 
 
 def _make_wallet() -> ProtoWallet:
@@ -234,6 +241,58 @@ def test_general_message_roundtrip_signs_and_verifies() -> None:
     assert resp.headers.get("x-bsv-auth-signature")
     assert resp.headers.get("x-bsv-auth-request-id") == request_nonce_b64
     assert resp.headers.get("x-bsv-auth-your-nonce") == outbound.nonce
+
+
+def test_authenticated_request_exposes_identity_in_scope() -> None:
+    """The wrapped application must be able to read the verified
+    identity key from ``scope['bsv_auth']`` so it can authorise
+    requests without re-doing any crypto."""
+
+    server_wallet = _make_wallet()
+    middleware = AuthMiddleware(_make_app(), wallet=server_wallet)
+    client = TestClient(middleware)
+
+    client_peer, client_wallet, _ = _drive_handshake(
+        client, server_wallet.public_key
+    )
+
+    import base64
+    import os
+
+    from bsv_brc.brc104.core.wire import build_request_payload
+
+    request_nonce = os.urandom(32)
+    request_nonce_b64 = base64.b64encode(request_nonce).decode("ascii")
+    payload = build_request_payload(
+        request_nonce=request_nonce,
+        method="GET",
+        url_path="/whoami",
+        url_query="",
+        headers=[],
+        body=b"",
+    )
+
+    out_slot: list = []
+    out_token = _response_slot.set(out_slot)
+    try:
+        client_peer.to_peer(payload, server_wallet.public_key, 0)
+    finally:
+        _response_slot.reset(out_token)
+    outbound = out_slot[0]
+
+    headers = {
+        "x-bsv-auth-version": outbound.version,
+        "x-bsv-auth-identity-key": outbound.identity_key.hex(),
+        "x-bsv-auth-message-type": "general",
+        "x-bsv-auth-nonce": outbound.nonce,
+        "x-bsv-auth-your-nonce": outbound.your_nonce,
+        "x-bsv-auth-signature": outbound.signature.hex(),
+        "x-bsv-auth-request-id": request_nonce_b64,
+    }
+    resp = client.get("/whoami", headers=headers)
+    assert resp.status_code == 200
+    # The /whoami handler echoes scope['bsv_auth']['identity_key'].
+    assert resp.text == client_wallet.public_key.hex()
 
 
 def test_general_message_without_auth_headers_passes_through() -> None:
