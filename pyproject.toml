@@ -30,6 +30,13 @@ dev = ["pytest>=7.0", "pytest-asyncio>=0.21", "httpx>=0.24"]
 Repository = "https://github.com/datamynt/bsv-brc-python"
 Issues = "https://github.com/datamynt/bsv-brc-python/issues"
 
+[tool.hatch.build.targets.sdist]
+include = ["src/bsv_brc", "tests", "README.md", "LICENSE", "CHANGELOG.md", "pyproject.toml"]
+exclude = [".venv*", "venv", "build", "dist", "**/__pycache__", "*.pyc"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bsv_brc"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
