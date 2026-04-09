@@ -45,6 +45,11 @@ from bsv.auth.peer import Peer
 from bsv.auth.transports.transport import Transport
 from bsv.keys import PublicKey
 
+from bsv_brc.brc104.core.wire import (
+    build_request_payload,
+    build_response_payload,
+)
+
 
 class _ResultShim(dict):
     """Dict subclass that also exposes its keys as attributes.
@@ -286,6 +291,42 @@ async def _read_body(receive: Callable[[], Awaitable[dict]]) -> bytes:
     return body
 
 
+_AUTH_HEADER_PREFIX = b"x-bsv-auth-"
+
+
+def _scope_headers(scope: dict) -> list[tuple[str, str]]:
+    """Decode an ASGI scope headers list into (lowercase-name, value) tuples."""
+    return [
+        (k.decode("latin-1").lower(), v.decode("latin-1"))
+        for k, v in scope.get("headers", [])
+    ]
+
+
+def _request_has_auth_headers(scope: dict) -> bool:
+    for k, _ in scope.get("headers", []):
+        if k.lower().startswith(_AUTH_HEADER_PREFIX):
+            return True
+    return False
+
+
+def _get_auth_header(scope_headers: list[tuple[str, str]], name: str) -> Optional[str]:
+    for k, v in scope_headers:
+        if k == name:
+            return v
+    return None
+
+
+def _bytes_from_hex_or_b64(value: str) -> bytes:
+    """BRC-104 transports signatures as hex; some shipping clients use b64.
+
+    Try hex first, then base64 — both are unambiguous given valid input.
+    """
+    try:
+        return bytes.fromhex(value)
+    except ValueError:
+        return base64.b64decode(value)
+
+
 async def _send_json(send: Callable[[dict], Awaitable[None]], status: int, payload: dict) -> None:
     body = json.dumps(payload, default=str).encode("utf-8")
     await send(
@@ -340,7 +381,15 @@ class AuthMiddleware:
             return
 
         if scope.get("path") != WELL_KNOWN_AUTH_PATH:
-            await self.app(scope, receive, send)
+            # Non-handshake path: either authenticated general-message
+            # wrapping or a plain pass-through. We use the presence of
+            # x-bsv-auth-* headers to discriminate so the middleware is
+            # safe to drop in front of an existing app without breaking
+            # unauthenticated traffic.
+            if _request_has_auth_headers(scope):
+                await self._handle_general(scope, receive, send)
+            else:
+                await self.app(scope, receive, send)
             return
 
         if scope.get("method", "").upper() != "POST":
@@ -389,6 +438,208 @@ class AuthMiddleware:
 
         outbound = slot[0]
         await _send_json(send, 200, _auth_message_to_dict(outbound))
+
+    async def _handle_general(self, scope: dict, receive, send) -> None:
+        """Verify a signed BRC-104 request, run the app, sign the response.
+
+        This is the workhorse path: every authenticated HTTP call from
+        a peer that has already completed the /.well-known/auth
+        handshake passes through here. The structure mirrors what the
+        TS reference implementation does, just expressed in async ASGI:
+
+        1. Read auth headers and reconstruct the bytes the client
+           signed (``build_request_payload``).
+        2. Hand the resulting AuthMessage to ``Peer.handle_incoming_message``,
+           which verifies the signature against the live session.
+        3. Forward the request to the wrapped application and buffer
+           its full response.
+        4. Build the response payload bytes, sign by calling
+           ``Peer.to_peer`` (whose outbound message is captured by our
+           transport), and emit the original response with the signed
+           ``x-bsv-auth-*`` headers added.
+
+        On any verification failure we return 401 and never invoke the
+        wrapped application.
+        """
+        scope_headers = _scope_headers(scope)
+
+        identity_key_hex = _get_auth_header(scope_headers, "x-bsv-auth-identity-key")
+        nonce_b64 = _get_auth_header(scope_headers, "x-bsv-auth-nonce")
+        your_nonce = _get_auth_header(scope_headers, "x-bsv-auth-your-nonce")
+        signature_hex = _get_auth_header(scope_headers, "x-bsv-auth-signature")
+        request_id_b64 = _get_auth_header(scope_headers, "x-bsv-auth-request-id")
+        version = _get_auth_header(scope_headers, "x-bsv-auth-version") or "0.1"
+
+        if not all([identity_key_hex, nonce_b64, your_nonce, signature_hex, request_id_b64]):
+            await _send_json(send, 401, {"error": "incomplete auth headers"})
+            return
+
+        try:
+            request_nonce_bytes = base64.b64decode(request_id_b64)
+        except Exception as exc:
+            await _send_json(send, 401, {"error": f"invalid request id: {exc}"})
+            return
+        if len(request_nonce_bytes) != 32:
+            await _send_json(send, 401, {"error": "request id must decode to 32 bytes"})
+            return
+
+        try:
+            signature_bytes = _bytes_from_hex_or_b64(signature_hex)
+        except Exception as exc:
+            await _send_json(send, 401, {"error": f"invalid signature: {exc}"})
+            return
+
+        try:
+            client_identity = PublicKey(identity_key_hex)
+        except Exception as exc:
+            await _send_json(send, 401, {"error": f"invalid identity key: {exc}"})
+            return
+
+        body = await _read_body(receive)
+
+        # Reconstruct the bytes the client signed.
+        method = scope.get("method", "GET")
+        path = scope.get("path", "/") or "/"
+        query = (scope.get("query_string") or b"").decode("latin-1")
+        request_payload = build_request_payload(
+            request_nonce=request_nonce_bytes,
+            method=method,
+            url_path=path,
+            url_query=query,
+            headers=scope_headers,
+            body=body,
+        )
+
+        inbound = AuthMessage(
+            version=version,
+            message_type="general",
+            identity_key=client_identity,
+            nonce=nonce_b64,
+            your_nonce=your_nonce,
+            payload=request_payload,
+            signature=signature_bytes,
+        )
+
+        # Verification path: hand the message to Peer. We do not need
+        # the capturing transport here because handle_general_message
+        # does not call transport.send on success — it only dispatches
+        # to general-message callbacks. We still set the slot to
+        # absorb any unexpected outbound message rather than crash.
+        verify_slot: list = []
+        token = _response_slot.set(verify_slot)
+        try:
+            err = await asyncio.to_thread(
+                self.peer.handle_incoming_message, inbound
+            )
+        finally:
+            _response_slot.reset(token)
+
+        if err is not None:
+            await _send_json(send, 401, {"error": str(err)})
+            return
+
+        # Run the wrapped app and buffer its response so we can sign it.
+        captured_response: dict = {"status": 200, "headers": [], "body": bytearray()}
+        body_consumed = False
+
+        async def replay_receive() -> dict:
+            nonlocal body_consumed
+            if body_consumed:
+                return {"type": "http.disconnect"}
+            body_consumed = True
+            return {"type": "http.request", "body": body, "more_body": False}
+
+        async def buffering_send(message: dict) -> None:
+            mtype = message.get("type")
+            if mtype == "http.response.start":
+                captured_response["status"] = message.get("status", 200)
+                captured_response["headers"] = list(message.get("headers", []))
+            elif mtype == "http.response.body":
+                chunk = message.get("body", b"") or b""
+                captured_response["body"].extend(chunk)
+                # ignore more_body — we always wait for the full body
+
+        await self.app(scope, replay_receive, buffering_send)
+
+        response_status = int(captured_response["status"])
+        response_headers_pairs: list[tuple[str, str]] = [
+            (k.decode("latin-1").lower(), v.decode("latin-1"))
+            for k, v in captured_response["headers"]
+        ]
+        response_body = bytes(captured_response["body"])
+
+        response_payload = build_response_payload(
+            request_nonce=request_nonce_bytes,
+            status_code=response_status,
+            headers=response_headers_pairs,
+            body=response_body,
+        )
+
+        # Sign the response payload by asking Peer to send it. Our
+        # capturing transport intercepts the AuthMessage so we can pull
+        # the signature, server nonce, and identity key out of it.
+        sign_slot: list = []
+        token = _response_slot.set(sign_slot)
+        try:
+            send_err = await asyncio.to_thread(
+                self.peer.to_peer, response_payload, client_identity, 0
+            )
+        finally:
+            _response_slot.reset(token)
+
+        if send_err is not None or not sign_slot:
+            await _send_json(
+                send,
+                500,
+                {"error": f"failed to sign response: {send_err}"},
+            )
+            return
+
+        outbound: AuthMessage = sign_slot[0]
+        server_identity = getattr(outbound, "identity_key", None)
+        server_identity_hex = (
+            server_identity.hex()
+            if hasattr(server_identity, "hex")
+            else str(server_identity)
+        )
+        server_nonce = getattr(outbound, "nonce", "") or ""
+        outbound_signature = getattr(outbound, "signature", b"") or b""
+        signature_out_hex = (
+            outbound_signature.hex()
+            if isinstance(outbound_signature, (bytes, bytearray))
+            else "".join(f"{b:02x}" for b in outbound_signature)
+        )
+
+        # Build the final response headers: keep the wrapped app's
+        # headers (minus any conflicting auth headers) and append the
+        # signed BRC-104 envelope.
+        final_headers: list[tuple[bytes, bytes]] = [
+            (k, v)
+            for k, v in captured_response["headers"]
+            if not k.lower().startswith(_AUTH_HEADER_PREFIX)
+        ]
+        final_headers.extend(
+            [
+                (b"x-bsv-auth-version", version.encode("latin-1")),
+                (b"x-bsv-auth-identity-key", server_identity_hex.encode("latin-1")),
+                (b"x-bsv-auth-message-type", b"general"),
+                (b"x-bsv-auth-nonce", server_nonce.encode("latin-1")),
+                (b"x-bsv-auth-your-nonce", nonce_b64.encode("latin-1")),
+                (b"x-bsv-auth-signature", signature_out_hex.encode("latin-1")),
+                (b"x-bsv-auth-request-id", request_id_b64.encode("latin-1")),
+            ]
+        )
+
+        await send(
+            {
+                "type": "http.response.start",
+                "status": response_status,
+                "headers": final_headers,
+            }
+        )
+        await send(
+            {"type": "http.response.body", "body": response_body, "more_body": False}
+        )
 
 
 __all__ = ["AuthMiddleware", "WELL_KNOWN_AUTH_PATH"]
