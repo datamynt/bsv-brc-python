@@ -22,7 +22,26 @@ from bsv_brc.brc105.types import (
 )
 from bsv_brc.brc105.nonce import NonceManager
 from bsv_brc.brc105.challenge import create_challenge, parse_challenge_headers
-from bsv_brc.brc105.middleware import PaymentMiddleware
+
+# PaymentMiddleware depends on Starlette, which is an optional extra
+# (`pip install "bsv-brc[starlette]"`). Import it lazily so the core 402
+# primitives above remain usable without Starlette installed.
+try:
+    from bsv_brc.brc105.middleware import PaymentMiddleware
+except ModuleNotFoundError as _exc:  # pragma: no cover - only without the extra
+
+    class _MissingPaymentMiddleware:
+        """Placeholder raising a clear error when Starlette is not installed."""
+
+        _err = _exc
+
+        def __init__(self, *_args, **_kwargs):
+            raise ImportError(
+                "PaymentMiddleware requires Starlette. "
+                'Install it with: pip install "bsv-brc[starlette]"'
+            ) from self._err
+
+    PaymentMiddleware = _MissingPaymentMiddleware  # type: ignore[assignment,misc]
 
 __all__ = [
     "PaymentChallenge",
