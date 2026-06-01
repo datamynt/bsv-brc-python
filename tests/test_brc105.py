@@ -40,8 +40,12 @@ class TestNonceManager:
 
     def test_tampered_nonce_rejected(self):
         nonce = self.manager.create()
-        # Flip a byte in the random part
-        tampered = "ff" + nonce[2:]
+        # Flip the first byte of the random part. XOR with 0xff guarantees a
+        # change regardless of the original value — a plain "ff" + nonce[2:]
+        # would be a no-op (and falsely pass) ~1/256 of the time, when the
+        # random first byte already happened to be 0xff.
+        flipped = f"{int(nonce[:2], 16) ^ 0xFF:02x}"
+        tampered = flipped + nonce[2:]
         # Remove from store so we test the HMAC check path
         self.manager._nonces[tampered] = self.manager._nonces.pop(nonce)
         assert not self.manager.verify(tampered)
