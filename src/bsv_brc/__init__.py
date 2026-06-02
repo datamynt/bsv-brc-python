@@ -1,10 +1,118 @@
 """
-bsv-brc — Python implementations of BSV BRC protocols.
+bsv-brc — higher-level BRC protocol building blocks for Python.
 
-BRC-94: Verifiable revelation of shared secrets using Schnorr protocol
-BRC-105: HTTP service monetization framework (402 micropayments)
+The protocol-layer companion to ``bsv-sdk`` (py-sdk): where bsv-sdk gives
+you keys, transactions, SPV and the client side of overlay/auth, bsv-brc
+adds the pieces that make *building a BRC app* easy — identity
+certificates, HTTP mutual auth + micropayment middleware, and the
+server-side overlay machinery py-sdk leaves open.
 
-Compatible with @bsv/sdk (TypeScript) and brc52-python.
+Modules:
+    brc052       — BRC-52 identity certificates (AES-256-GCM, issuance)
+    brc094       — BRC-94 verifiable ECDH shared secrets (Schnorr proof)
+    brc104       — BRC-103/104 mutual auth, ASGI adapter over bsv.auth
+    brc105       — BRC-105 HTTP 402 micropayments (middleware + client)
+    brc22        — BRC-22 server-side overlay topic submission (/submit)
+    brc24        — BRC-24 server-side lookup services / feed (/lookup)
+    brc87        — BRC-87 tm_/ls_ overlay name validation
+    overlay      — OverlayEngine: a runnable overlay node (submit + lookup)
+    integration  — build_brc_app: auth + payments pre-stacked (Starlette)
+    crypto       — shared BRC-42/43 key derivation primitives
+
+The auth/payment/overlay glue lives behind the optional ``starlette``
+extra: ``pip install "bsv-brc[starlette]"``.
+
+Compatible with @bsv/sdk (TypeScript). License: Open BSV.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
+
+# Always-available core (no optional dependencies).
+from bsv_brc.brc105.types import (
+    BSVPayment,
+    PaymentResult,
+    PricingStrategy,
+    StaticPricing,
+)
+from bsv_brc.brc105.nonce import NonceManager
+from bsv_brc.brc22 import (
+    AdmittanceInstructions,
+    TaggedBEEF,
+    TopicEngine,
+    TopicManager,
+    UnknownTopicError,
+)
+from bsv_brc.brc24 import LookupService, OutputRef, ResolvedOutput
+from bsv_brc.brc87 import (
+    InvalidNameError,
+    is_valid_service_name,
+    is_valid_topic_name,
+    validate_service_name,
+    validate_topic_name,
+)
+from bsv_brc.overlay import (
+    InMemoryOverlayStorage,
+    OverlayEngine,
+    OverlayStorage,
+    SqliteOverlayStorage,
+    UnknownServiceError,
+)
+
+__all__ = [
+    "__version__",
+    # BRC-105 core
+    "BSVPayment",
+    "PaymentResult",
+    "PricingStrategy",
+    "StaticPricing",
+    "NonceManager",
+    # BRC-22 overlay (server side)
+    "TopicManager",
+    "TopicEngine",
+    "UnknownTopicError",
+    "AdmittanceInstructions",
+    "TaggedBEEF",
+    # BRC-24 lookup + overlay node
+    "LookupService",
+    "OutputRef",
+    "ResolvedOutput",
+    "OverlayEngine",
+    "OverlayStorage",
+    "InMemoryOverlayStorage",
+    "SqliteOverlayStorage",
+    "UnknownServiceError",
+    # BRC-87 overlay name validation
+    "validate_topic_name",
+    "validate_service_name",
+    "is_valid_topic_name",
+    "is_valid_service_name",
+    "InvalidNameError",
+    # Integration helpers (require the `starlette` extra)
+    "build_brc_app",
+    "make_internalize_verifier",
+    "build_internalize_args",
+    "PathPricing",
+    "get_identity",
+    "get_payment",
+]
+
+
+def __getattr__(name: str):
+    """Lazily expose the Starlette-dependent integration helpers.
+
+    Keeps ``import bsv_brc`` working without the ``starlette`` extra; the
+    integration names raise a clear ImportError only when actually used.
+    """
+    _integration_names = {
+        "build_brc_app",
+        "make_internalize_verifier",
+        "build_internalize_args",
+        "PathPricing",
+        "get_identity",
+        "get_payment",
+    }
+    if name in _integration_names:
+        from bsv_brc import integration
+
+        return getattr(integration, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

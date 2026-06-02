@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "bsv-brc"
-version = "0.2.0"
-description = "Framework adapters for the official bsv.auth (BRC-103/104) plus BRC-52, BRC-94 and the BRC-105 HTTP micropayment layer"
+version = "0.3.0"
+description = "Framework adapters for the official bsv.auth (BRC-103/104) plus BRC-52, BRC-94, the BRC-105 HTTP micropayment layer, and a server-side BRC-22 overlay topic-submission framework"
 readme = "README.md"
 license = {text = "Open BSV License"}
 requires-python = ">=3.10"
@@ -17,13 +17,16 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
-    "bsv-sdk>=2.0.0b1",
+    "bsv-sdk>=2.1.3",
     "typing_extensions>=4.0",
     "pycryptodomex>=3.19",
 ]
 
 [project.optional-dependencies]
 starlette = ["starlette>=0.27"]
+# Running an overlay node needs the ASGI adapters (Starlette). SQLite
+# storage is stdlib, so this is currently an alias for `starlette`.
+overlay = ["starlette>=0.27"]
 dev = ["pytest>=7.0", "pytest-asyncio>=0.21", "httpx>=0.24"]
 
 [project.urls]
@@ -36,6 +39,8 @@ exclude = [".venv*", "venv", "build", "dist", "**/__pycache__", "*.pyc"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/bsv_brc"]
+# Ship the PEP 561 marker so downstream type-checkers see our hints.
+force-include = { "src/bsv_brc/py.typed" = "bsv_brc/py.typed" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
