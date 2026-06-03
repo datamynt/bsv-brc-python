@@ -37,6 +37,7 @@ src/bsv_brc/
   brc22/           — TopicManager ABC, TopicEngine, adapters/asgi (/submit)
   brc24/           — LookupService ABC, OutputRef, wire (binary output-list)
   brc87.py         — tm_/ls_ overlay name validation (pure stdlib)
+  bitcom.py        — Bitcoin-Schema OP_RETURN (B/MAP/AIP) build+parse+AIP
   overlay/         — OverlayEngine, storage (in-mem + SQLite), topic_root, client (OverlayClient), adapters/asgi
   ../docs/upstream/ — ready-to-file py-sdk bug reports (2 confirmed in 2.1.3+HEAD)
   integration.py   — build_brc_app, BRC-29 internalize verifier, PathPricing

@@ -6,6 +6,11 @@ py-sdk-bugene FILET: py-sdk#158 (lookup-parser), #159 (internalize-BEEF). peck-o
 **Full interop-bevis FERDIG**: vår `state_root` over de 4 live tm_peck-bio-profile-outpoint-ene = overlay.peck.to sin publiserte root `b26b1c65...` byte-for-byte (pinnet som offline regresjonstest). Tom-root `e3b0c442` også live-matchet. Topic-root-gaten HELT lukket. 185 tester.
 **PyPI: PUBLISERT 2026-06-03** — 0.3.0 lastet opp av Thomas (https://pypi.org/project/bsv-brc/0.3.0/). `pip install bsv-brc` gir nå hele verktøykassa. (PyPI JSON-API cacher ~noen min, så /pypi/bsv-brc/json kan vise 0.2.0 en stund — ufarlig.)
 
+## Sist gjort (2026-06-03, etter PyPI 0.3.0)
+- **Monorepo adopsjons-survey** (workflow): kart over hvor bsv-brc kan dogfood-es — se minne [bsv-brc adopsjons-kart]. peck-web bruker ALLEREDE bsv_brc auth.
+- **Overlay-KLIENT bygget** (`bsv_brc.overlay.OverlayClient`, committet d42f38a master, UNRELEASED→0.4.0): submit/lookup/state/verify_state, default overlay.peck.to, dependency-fri (urllib) + rene parsere for async. **Live-verifisert mot overlay.peck.to**. 193 tester. CHANGELOG [Unreleased].
+- Adopsjons-rekkefølge (Thomas: "alle, men start på 1"): [x] overlay-klient. Neste: quick dogfood-wins (peck-certifier brc052-swap etc.), OP_RETURN/Bitcoin-Schema-bygger, paymail-modul, anchor-klient, ChainTracker.
+
 ## Mål
 OSS-fundament for å bygge sosiale apper på overlay (open-source peck.to). `examples/social_feed.py` = referanse-frøet. Modell (overlay.social): chain-anchor + overlay read-layer (GASP-sync + per-topic Merkle-roots, IKKE SHIP/SLAP) + BRC-100-identitet + 3 skrivekanaler + BRC-77.
 

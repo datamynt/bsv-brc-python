@@ -22,6 +22,7 @@ open (it ships only the overlay *client* side).
 | `bsv_brc.brc22` | [BRC-22](https://bsv.brc.dev/overlays/0022) | **Server-side** overlay topic submission (`/submit`) |
 | `bsv_brc.brc24` | [BRC-24](https://bsv.brc.dev/overlays/0024) | **Server-side** lookup services — the feed (`/lookup`) |
 | `bsv_brc.brc87` | [BRC-87](https://bsv.brc.dev/overlays/0087) | `tm_`/`ls_` overlay name validation |
+| `bsv_brc.bitcom` | B/MAP/AIP | Bitcoin-Schema OP_RETURN builder + parser + AIP |
 | `bsv_brc.overlay` | — | `OverlayEngine` (run a node) + `OverlayClient` (talk to one) |
 | `bsv_brc.integration` | — | `build_brc_app`: auth + payments pre-stacked |
 
@@ -173,6 +174,8 @@ cert = issue(
 - [x] BRC-87 — `tm_`/`ls_` name validation
 - [x] Per-topic state root + `GET /state` endpoint — **matches `overlay.peck.to` `/state`**
 - [x] Overlay `OverlayClient` (submit / lookup / state / verify) — defaults to `overlay.peck.to`
+- [x] Bitcom / Bitcoin-Schema OP_RETURN (`bsv_brc.bitcom`) — B/MAP/AIP build + parse + AIP verify
+- [ ] paymail, peck-anchor client, headers.peck.to ChainTracker (ecosystem gaps)
 - [ ] GASP-style peer sync + on-chain root anchoring
 
 Deliberately **out of scope** (see `CHANGELOG.md`): BRC-101 (aspirational,
@@ -186,7 +189,7 @@ git clone https://github.com/datamynt/bsv-brc-python.git
 cd bsv-brc-python
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[starlette,dev]"
-pytest -v  # 193 tests
+pytest -v  # 210 tests
 ```
 
 ## License
