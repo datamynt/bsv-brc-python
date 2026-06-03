@@ -96,3 +96,16 @@ class TestPublicKeyFromPrivate:
         pub = keys.public_key_from_private(priv)
         assert len(pub) == 33
         assert pub[0] in (2, 3)
+
+
+def test_brc052_reexports_brc42_43_key_helpers():
+    # peck-certifier (and any BRC-52 issuer) gets one import surface.
+    from bsv_brc.brc052 import (
+        public_key_from_private,
+        shared_secret,
+        derive_symmetric_key,
+        derive_signing_key,
+        invoice_number,
+    )
+    from bsv_brc.crypto import public_key_from_private as crypto_pkfp
+    assert public_key_from_private is crypto_pkfp  # same object, just re-exported

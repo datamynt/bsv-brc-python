@@ -21,6 +21,18 @@ from bsv_brc.brc052.certificate import (
     make_certificate_type,
 )
 
+# Re-export the BRC-42/43 key primitives certificate issuance is built on,
+# so a BRC-52 issuer (e.g. peck-certifier) has a single import surface and
+# need not reach into bsv_brc.crypto separately. public_key_from_private in
+# particular unblocks deriving the certifier's public key from its key.
+from bsv_brc.crypto import (
+    public_key_from_private,
+    shared_secret,
+    derive_symmetric_key,
+    derive_signing_key,
+    invoice_number,
+)
+
 __all__ = [
     # AES-256-GCM (BSV SDK layout)
     "encrypt",
@@ -31,4 +43,10 @@ __all__ = [
     "verify_signature",
     "issue",
     "make_certificate_type",
+    # BRC-42/43 key primitives (re-exported from bsv_brc.crypto)
+    "public_key_from_private",
+    "shared_secret",
+    "derive_symmetric_key",
+    "derive_signing_key",
+    "invoice_number",
 ]

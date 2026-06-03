@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "bsv-brc"
-version = "0.3.0"
+version = "0.4.0"
 description = "Framework adapters for the official bsv.auth (BRC-103/104) plus BRC-52, BRC-94, the BRC-105 HTTP micropayment layer, and a server-side BRC-22 overlay topic-submission framework"
 readme = "README.md"
 license = {text = "Open BSV License"}

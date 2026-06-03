@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-from typing import Any, Mapping, Optional
+from typing import Any, Callable, Mapping, Optional, Union
 
 from bsv.overlay_tools.ship_broadcaster import AdmittanceInstructions, TaggedBEEF
 from bsv.transaction import Transaction
@@ -40,7 +40,23 @@ from bsv_brc.brc24.lookup_service import LookupService, OutputRef, ResolvedOutpu
 from bsv_brc.overlay.storage import InMemoryOverlayStorage, OverlayStorage
 from bsv_brc.overlay.topic_root import outpoint_string, state_root
 
-__all__ = ["OverlayEngine", "UnknownServiceError", "UnknownTopicError"]
+__all__ = [
+    "OverlayEngine",
+    "UnknownServiceError",
+    "UnknownTopicError",
+    "SPVVerificationError",
+]
+
+# (tx) -> bool | Awaitable[bool] — return False to reject the submission.
+VerifyTx = Callable[[Transaction], Union[bool, Any]]
+
+
+class SPVVerificationError(ValueError):
+    """Raised when a submitted transaction fails the injected verify_tx check."""
+
+    def __init__(self, txid: str) -> None:
+        self.txid = txid
+        super().__init__(f"transaction {txid} failed SPV/verification")
 
 
 class UnknownServiceError(ValueError):
@@ -78,6 +94,16 @@ class OverlayEngine:
             (a submit-only node), but then you only need
             :class:`bsv_brc.brc22.TopicEngine`.
         storage: the topical UTXO set; defaults to an in-memory store.
+        verify_tx: optional ``(tx) -> bool`` (sync or async) run on each
+            submitted transaction *before* admittance; returning False
+            rejects it with :class:`SPVVerificationError`. The canonical
+            use is BRC-9 SPV — inject ``lambda tx: tx.verify(tracker)``
+            with a ``bsv.chaintracker.ChainTracker`` (e.g. one backed by
+            headers.peck.to) to verify merkle proofs against block
+            headers. Omit it (default) to trust the submitted BEEF, which
+            is what a mempool/zero-conf overlay wants since unconfirmed
+            transactions carry no merkle proof. Do NOT default to the
+            SDK's WhatsOnChain tracker (house rule: never WoC as a reader).
     """
 
     def __init__(
@@ -86,12 +112,14 @@ class OverlayEngine:
         lookup_services: Optional[Mapping[str, LookupService]] = None,
         *,
         storage: Optional[OverlayStorage] = None,
+        verify_tx: Optional[VerifyTx] = None,
     ) -> None:
         if not topic_managers:
             raise ValueError("OverlayEngine requires at least one topic manager")
         self.topic_managers: dict[str, TopicManager] = dict(topic_managers)
         self.lookup_services: dict[str, LookupService] = dict(lookup_services or {})
         self.storage: OverlayStorage = storage or InMemoryOverlayStorage()
+        self._verify_tx = verify_tx
         # Serializes the check-then-act in submit() so concurrent
         # submissions cannot both classify the same coin as live and
         # double-admit/double-spend it — necessary because an async
@@ -117,6 +145,12 @@ class OverlayEngine:
 
         tx = Transaction.from_beef(tagged.beef)
         txid = tx.txid()
+
+        # BRC-9 SPV / custom verification before admittance, if wired in.
+        if self._verify_tx is not None:
+            ok = await _maybe_await(self._verify_tx(tx))
+            if not ok:
+                raise SPVVerificationError(txid)
 
         # The whole check-then-act (read previous coins -> ask manager ->
         # write admits/spends -> notify services) must be atomic across

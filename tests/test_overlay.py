@@ -736,3 +736,55 @@ def test_client_round_trip_submit_lookup_state_verify():
     # client-side state-root verification against the node's published root
     assert oc.verify_state("tm_posts", [f"{tx.txid()}:0"]) is True
     assert oc.verify_state("tm_posts", ["deadbeef:0"]) is False
+
+
+# --- SPV / verify_tx on submit -------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_verify_tx_rejects_when_false():
+    from bsv_brc.overlay import SPVVerificationError
+
+    seen = {}
+
+    def verify(tx):
+        seen["called"] = True
+        return False
+
+    engine = OverlayEngine(
+        topic_managers={"tm_posts": AdmitOutputZero()},
+        verify_tx=verify,
+    )
+    tx = _tx_one_output(b"unverified")
+    with pytest.raises(SPVVerificationError):
+        await engine.submit(TaggedBEEF(beef=tx.to_beef(), topics=["tm_posts"]))
+    assert seen["called"]
+    # rejected before admittance -> nothing stored
+    assert not engine.storage.is_unspent("tm_posts", tx.txid(), 0)
+
+
+@pytest.mark.asyncio
+async def test_verify_tx_admits_when_true_and_receives_tx():
+    captured = {}
+
+    async def verify(tx):  # async verifier supported
+        captured["txid"] = tx.txid()
+        return True
+
+    engine = OverlayEngine(
+        topic_managers={"tm_posts": AdmitOutputZero()},
+        lookup_services={"ls_posts": RecencyIndex("tm_posts")},
+        verify_tx=verify,
+    )
+    tx = _tx_one_output(b"verified")
+    steak = await engine.submit(TaggedBEEF(beef=tx.to_beef(), topics=["tm_posts"]))
+    assert steak["tm_posts"].outputs_to_admit == [0]
+    assert captured["txid"] == tx.txid()
+
+
+@pytest.mark.asyncio
+async def test_no_verify_tx_keeps_default_trusting_behaviour():
+    engine = _engine()  # no verify_tx
+    tx = _tx_one_output(b"trusted")
+    steak = await engine.submit(TaggedBEEF(beef=tx.to_beef(), topics=["tm_posts"]))
+    assert steak["tm_posts"].outputs_to_admit == [0]

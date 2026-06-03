@@ -21,6 +21,7 @@ Bring the interfaces from their home packages:
 
 from bsv_brc.overlay.engine import (
     OverlayEngine,
+    SPVVerificationError,
     UnknownServiceError,
     UnknownTopicError,
 )
@@ -48,6 +49,7 @@ __all__ = [
     "OverlayEngine",
     "UnknownServiceError",
     "UnknownTopicError",
+    "SPVVerificationError",
     "OverlayStorage",
     "InMemoryOverlayStorage",
     "SqliteOverlayStorage",

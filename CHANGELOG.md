@@ -5,9 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.0] - 2026-06-03
 
 ### Added
+- **Optional SPV / transaction verification on submit** —
+  `OverlayEngine(..., verify_tx=...)` runs an injected `(tx) -> bool`
+  (sync or async) before admittance; returning False rejects with
+  `SPVVerificationError`. The canonical use is BRC-9 SPV:
+  `verify_tx=lambda tx: tx.verify(tracker)` with a `ChainTracker` (e.g.
+  headers.peck.to-backed) to check merkle proofs against block headers.
+  Defaults to off (trust the BEEF — what a mempool/zero-conf overlay
+  wants); deliberately never defaults to the SDK's WhatsOnChain tracker.
+- **`bsv_brc.brc052` re-exports the BRC-42/43 key helpers** it composes
+  (`public_key_from_private`, `shared_secret`, `derive_symmetric_key`,
+  `derive_signing_key`, `invoice_number`), so a BRC-52 issuer has one
+  import surface (unblocks dropping the legacy `brc52-python` fork).
 - **Overlay CLIENT** (`bsv_brc.overlay.OverlayClient`) — the consumer
   side, defaulting to `overlay.peck.to`. `submit(beef, topics)` (JSON
   `x-topics` array + octet-stream BEEF) returns a parsed STEAK with
