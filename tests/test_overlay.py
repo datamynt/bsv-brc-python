@@ -29,6 +29,15 @@ from bsv_brc.overlay.adapters.asgi import (
     make_lookup_route,
     process_lookup,
 )
+from bsv_brc.overlay.client import (
+    NoAdmissionError,
+    OverlayClient,
+    OverlayHTTPError,
+    build_submit_headers,
+    parse_lookup_answer,
+    parse_state,
+    parse_steak,
+)
 
 
 # --- helpers -------------------------------------------------------------
@@ -625,3 +634,105 @@ async def test_engine_end_to_end_over_sqlite():
     # BEEF persisted and resolvable from SQLite.
     assert engine.resolve(refs)[0].beef == tx.to_beef()
     assert engine.storage.is_unspent("tm_posts", tx.txid(), 0)
+
+
+# --- overlay CLIENT (consumer side) --------------------------------------
+
+
+def _client_over(app) -> OverlayClient:
+    """An OverlayClient whose transport drives an in-process Starlette app."""
+    tc = TestClient(app)
+
+    def fetch(method, url, headers, body):
+        r = tc.request(method, url, content=body, headers=headers)
+        return r.status_code, r.content
+
+    return OverlayClient(host="", fetch=fetch)
+
+
+# pure parsers
+
+
+def test_build_submit_headers_uses_json_array_x_topics():
+    h = build_submit_headers(["tm_a", "tm_b"])
+    assert h["Content-Type"] == "application/octet-stream"
+    assert json.loads(h["X-Topics"]) == ["tm_a", "tm_b"]
+
+
+def test_parse_steak_and_admitted():
+    steak = parse_steak({"tm_x": {"outputsToAdmit": [0, 2], "coinsToRetain": []}})
+    assert steak["tm_x"].outputs_to_admit == [0, 2]
+    empty = parse_steak({"tm_x": {"outputsToAdmit": [], "coinsToRetain": []}})
+    assert empty["tm_x"].outputs_to_admit == []
+
+
+def test_parse_lookup_answer_beef_int_array_and_atomic_txid():
+    # overlay.peck.to returns beef as a byte array; AtomicBEEF prefix
+    # 0x01010101 + 32-byte LE subject txid lets us recover the txid.
+    txid = "ab" * 32
+    atomic = [1, 1, 1, 1] + list(bytes.fromhex(txid)[::-1]) + [9, 9]
+    outs = parse_lookup_answer({"outputs": [{"beef": atomic, "outputIndex": 3}]})
+    assert outs[0].output_index == 3
+    assert outs[0].txid == txid
+    assert outs[0].beef[:4] == b"\x01\x01\x01\x01"
+
+
+def test_parse_lookup_answer_beef_base64_and_explicit_txid():
+    outs = parse_lookup_answer(
+        {"outputs": [{"beef": base64.b64encode(b"xy").decode(), "outputIndex": 1, "txid": "cd" * 32}]}
+    )
+    assert outs[0].beef == b"xy"
+    assert outs[0].txid == "cd" * 32
+
+
+def test_parse_state():
+    assert parse_state({"topics": [{"topic": "tm_x", "count": 2}]})[0]["topic"] == "tm_x"
+
+
+# submit require_admission + HTTP errors via a fake transport
+
+
+def test_submit_require_admission_raises_on_empty():
+    def fetch(method, url, headers, body):
+        return 200, json.dumps({"tm_x": {"outputsToAdmit": [], "coinsToRetain": []}}).encode()
+
+    oc = OverlayClient(host="https://x", fetch=fetch)
+    res = oc.submit(b"beef", ["tm_x"])
+    assert res.admitted is False
+    with pytest.raises(NoAdmissionError):
+        oc.submit(b"beef", ["tm_x"], require_admission=True)
+
+
+def test_client_raises_on_http_error():
+    def fetch(method, url, headers, body):
+        return 500, b"boom"
+
+    with pytest.raises(OverlayHTTPError):
+        OverlayClient(host="https://x", fetch=fetch).state()
+
+
+# full in-process round trip against a real bsv-brc overlay node
+
+
+def test_client_round_trip_submit_lookup_state_verify():
+    engine = _engine()  # tm_posts admits [0], ls_posts indexes
+    oc = _client_over(create_overlay_app(engine))
+
+    tx = _tx_one_output(b"clientpost")
+    res = oc.submit(tx.to_beef(), ["tm_posts"], require_admission=True)
+    assert res.admitted
+    assert res.steak["tm_posts"].outputs_to_admit == [0]
+
+    outs = oc.lookup("ls_posts")
+    assert len(outs) == 1
+    assert outs[0].output_index == 0
+    assert outs[0].txid == tx.txid()  # our server includes txid in the JSON
+    assert outs[0].beef  # BEEF-backed
+
+    state = oc.state()
+    entry = next(e for e in state if e["topic"] == "tm_posts")
+    assert entry["count"] == 1
+
+    # client-side state-root verification against the node's published root
+    assert oc.verify_state("tm_posts", [f"{tx.txid()}:0"]) is True
+    assert oc.verify_state("tm_posts", ["deadbeef:0"]) is False

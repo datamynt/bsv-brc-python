@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Overlay CLIENT** (`bsv_brc.overlay.OverlayClient`) — the consumer
+  side, defaulting to `overlay.peck.to`. `submit(beef, topics)` (JSON
+  `x-topics` array + octet-stream BEEF) returns a parsed STEAK with
+  `.admitted` and an opt-in `NoAdmissionError` (the silent
+  200-but-rejected trap); `lookup(service, query)` parses the
+  BEEF-backed output-list (beef as byte-array *or* base64, txid from the
+  AtomicBEEF prefix); `state()` / `topic_state()` read `GET /state`; and
+  `verify_state(topic, outpoints)` checks the node's published state root
+  against a local `state_root()`. Pure I/O-free builders/parsers
+  (`build_submit_headers`, `parse_steak`, `parse_lookup_answer`,
+  `parse_state`) are exposed for async apps to wire into their own HTTP
+  client; the bundled client is stdlib-`urllib` only (no new deps) and
+  takes a `fetch` override for testing/httpx. Verified live against
+  overlay.peck.to. Closes the gap where every Python service hand-rolled
+  its own overlay consumer.
+
 ## [0.3.0] - 2026-06-02
 
 ### Added

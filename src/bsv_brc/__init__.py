@@ -51,7 +51,9 @@ from bsv_brc.brc87 import (
     validate_topic_name,
 )
 from bsv_brc.overlay import (
+    DEFAULT_OVERLAY_HOST,
     InMemoryOverlayStorage,
+    OverlayClient,
     OverlayEngine,
     OverlayStorage,
     SqliteOverlayStorage,
@@ -81,6 +83,8 @@ __all__ = [
     "InMemoryOverlayStorage",
     "SqliteOverlayStorage",
     "UnknownServiceError",
+    "OverlayClient",
+    "DEFAULT_OVERLAY_HOST",
     # BRC-87 overlay name validation
     "validate_topic_name",
     "validate_service_name",

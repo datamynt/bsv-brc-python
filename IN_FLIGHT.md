@@ -1,6 +1,11 @@
 # IN_FLIGHT — bsv-brc-python
 _Sist oppdatert: 2026-06-02_
 
+## Status: 0.3.0 PUSHET + TAGGET (origin/master ec7fbcb, tag v0.3.0) 2026-06-03
+py-sdk-bugene FILET: py-sdk#158 (lookup-parser), #159 (internalize-BEEF). peck-overlay-schema /lookup-fix DEPLOYET av Thomas (rev 126) — `/lookup` funker live nå (returnerer output-list+AtomicBEEF).
+**Full interop-bevis FERDIG**: vår `state_root` over de 4 live tm_peck-bio-profile-outpoint-ene = overlay.peck.to sin publiserte root `b26b1c65...` byte-for-byte (pinnet som offline regresjonstest). Tom-root `e3b0c442` også live-matchet. Topic-root-gaten HELT lukket. 185 tester.
+**PyPI: PUBLISERT 2026-06-03** — 0.3.0 lastet opp av Thomas (https://pypi.org/project/bsv-brc/0.3.0/). `pip install bsv-brc` gir nå hele verktøykassa. (PyPI JSON-API cacher ~noen min, så /pypi/bsv-brc/json kan vise 0.2.0 en stund — ufarlig.)
+
 ## Mål
 OSS-fundament for å bygge sosiale apper på overlay (open-source peck.to). `examples/social_feed.py` = referanse-frøet. Modell (overlay.social): chain-anchor + overlay read-layer (GASP-sync + per-topic Merkle-roots, IKKE SHIP/SLAP) + BRC-100-identitet + 3 skrivekanaler + BRC-77.
 
@@ -32,4 +37,5 @@ OSS-fundament for å bygge sosiale apper på overlay (open-source peck.to). `exa
 - Fil de 2 py-sdk-bug-rapportene i `docs/upstream/` til github.com/bsv-blockchain/py-sdk (Thomas / via BSV Association). Begge bekreftet i 2.1.3 + HEAD.
 
 ## Blokkert / venter på
-- 0.3.0-push venter Thomas' OK. GASP/BEEF-binær-format/BRC-35 venter interop-verifisering mot overlay.peck.to.
+- peck-overlay /lookup-fix (f122089) venter DEPLOY av Thomas. Etter deploy: smoke-test `POST /lookup {"service":"ls_peck-bio-profile","query":{}}` → skal gi output-list, ikke .map-feil.
+- Valgfritt: tag v0.3.0 + PyPI-publisering (ikke gjort). GASP/BEEF-binær-format/BRC-35 venter videre interop-verifisering.

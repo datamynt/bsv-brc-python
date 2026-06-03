@@ -30,6 +30,14 @@ from bsv_brc.overlay.storage import (
     SqliteOverlayStorage,
     StoredOutput,
 )
+from bsv_brc.overlay.client import (
+    DEFAULT_OVERLAY_HOST,
+    LookupOutput,
+    NoAdmissionError,
+    OverlayClient,
+    OverlayHTTPError,
+    SubmitResult,
+)
 from bsv_brc.overlay.topic_root import (
     EMPTY_STATE_ROOT,
     outpoint_string,
@@ -48,4 +56,11 @@ __all__ = [
     "state_root",
     "outpoint_string",
     "EMPTY_STATE_ROOT",
+    # overlay consumer client
+    "OverlayClient",
+    "SubmitResult",
+    "LookupOutput",
+    "NoAdmissionError",
+    "OverlayHTTPError",
+    "DEFAULT_OVERLAY_HOST",
 ]

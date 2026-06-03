@@ -22,7 +22,7 @@ open (it ships only the overlay *client* side).
 | `bsv_brc.brc22` | [BRC-22](https://bsv.brc.dev/overlays/0022) | **Server-side** overlay topic submission (`/submit`) |
 | `bsv_brc.brc24` | [BRC-24](https://bsv.brc.dev/overlays/0024) | **Server-side** lookup services — the feed (`/lookup`) |
 | `bsv_brc.brc87` | [BRC-87](https://bsv.brc.dev/overlays/0087) | `tm_`/`ls_` overlay name validation |
-| `bsv_brc.overlay` | — | `OverlayEngine`: a runnable overlay node |
+| `bsv_brc.overlay` | — | `OverlayEngine` (run a node) + `OverlayClient` (talk to one) |
 | `bsv_brc.integration` | — | `build_brc_app`: auth + payments pre-stacked |
 
 ## Install
@@ -95,6 +95,26 @@ app = create_overlay_app(engine)  # POST /submit, POST /lookup
 See [`examples/social_feed.py`](examples/social_feed.py) for a complete
 ~150-line social feed (the seed of an open-source peck.to).
 
+### Talk to an overlay — submit, read, verify
+
+The consumer side, defaulting to `overlay.peck.to` (swappable):
+
+```python
+from bsv_brc import OverlayClient
+
+overlay = OverlayClient()  # defaults to https://overlay.peck.to
+
+result = overlay.submit(beef_bytes, ["tm_posts"], require_admission=True)
+# result.admitted -> bool; NoAdmissionError on a 200-but-rejected submit
+
+posts = overlay.lookup("ls_posts", {"limit": 20})   # -> [LookupOutput(txid, beef, ...)]
+state = overlay.state()                              # [{topic, count, stateRoot}]
+ok = overlay.verify_state("tm_posts", outpoints)     # local state_root == node's
+```
+
+Async apps can use the pure `build_submit_headers` / `parse_steak` /
+`parse_lookup_answer` / `parse_state` helpers with their own HTTP client.
+
 ### BRC-105: Accept micropayments on any endpoint
 
 ```python
@@ -152,6 +172,7 @@ cert = issue(
 - [x] BEEF-backed lookup answers (JSON) + `SqliteOverlayStorage`
 - [x] BRC-87 — `tm_`/`ls_` name validation
 - [x] Per-topic state root + `GET /state` endpoint — **matches `overlay.peck.to` `/state`**
+- [x] Overlay `OverlayClient` (submit / lookup / state / verify) — defaults to `overlay.peck.to`
 - [ ] GASP-style peer sync + on-chain root anchoring
 
 Deliberately **out of scope** (see `CHANGELOG.md`): BRC-101 (aspirational,
@@ -165,7 +186,7 @@ git clone https://github.com/datamynt/bsv-brc-python.git
 cd bsv-brc-python
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[starlette,dev]"
-pytest -v  # 184 tests
+pytest -v  # 193 tests
 ```
 
 ## License
