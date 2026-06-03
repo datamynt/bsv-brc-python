@@ -292,6 +292,25 @@ def test_empty_state_root_matches_live_overlay():
     )
 
 
+def test_state_root_matches_live_overlay_nonempty_vector():
+    # A real cross-implementation vector captured from overlay.peck.to:
+    # these were the 4 live tm_peck-bio-profile outpoints, and the overlay
+    # published this exact stateRoot for that set (GET /state, 2026-06-02).
+    # Our state_root reproduces it byte-for-byte — confirming the algorithm,
+    # the "txid:vout" form, and the txid (display) orientation all match.
+    from bsv_brc.overlay.topic_root import state_root
+
+    outpoints = [
+        "73aef9349d4261e59385ba2b2cc4024fe2cdcb6867466510fda7b824845d6c81:2",
+        "79dbf52539937025a12d763f2c17b8e50a98e392a2b389112a9dca772c2548ba:2",
+        "e7dad209a5db3b1f04882c777de024ad5272402921ddb10d302018e90002bfa7:1",
+        "f2afde6b1c6f5849834a00325e43fd61d28b7e234a8a5853b810df3ed75d2b4f:0",
+    ]
+    assert state_root(outpoints) == (
+        "b26b1c650c55fc800cca7c5ad9eac87fb58a98d56874383da10d1b87b16a1b94"
+    )
+
+
 def test_state_root_known_answer_and_dedupe():
     import hashlib
 
