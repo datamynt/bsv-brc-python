@@ -27,9 +27,6 @@ Compatible with @bsv/sdk (TypeScript). License: Open BSV.
 
 __version__ = "0.3.0"
 
-# Bitcom / Bitcoin-Schema OP_RETURN builder + parser (B/MAP/AIP).
-from bsv_brc import bitcom
-
 # Always-available core (no optional dependencies).
 from bsv_brc.brc105.types import (
     BSVPayment,
@@ -65,7 +62,6 @@ from bsv_brc.overlay import (
 
 __all__ = [
     "__version__",
-    "bitcom",
     # BRC-105 core
     "BSVPayment",
     "PaymentResult",

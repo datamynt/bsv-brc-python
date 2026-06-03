@@ -8,17 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Bitcom / Bitcoin-Schema OP_RETURN** (`bsv_brc.bitcom`) — the most
-  hand-rolled (and bug-prone) on-chain primitive in the fleet, captured
-  once. `op_return(*sections)` / `op_return_parts_to_script(parts)` build
-  `OP_FALSE OP_RETURN` data with the B / MAP / AIP prefixes, encoding the
-  ``|`` separator as the correct 1-byte pushdata (``0x01 0x7c``) — fixing
-  the raw-``0x7c`` (OP_SWAP) bug that silently breaks section parsers.
-  `b_section` / `map_set` helpers, a `parse_script` that mirrors
-  overlay.peck.to's `readMapSection` (B/MAP/AIP sections, MAP SET
-  key/values), `push_data`/`decode_pushdata`, and AIP authorship via BSM
-  (`bsm_sign`/`bsm_verify`/`bsm_recover_address`, `aip_section`,
-  `aip_verify`). Byte-grounded in the working apps + the overlay parser.
 - **Overlay CLIENT** (`bsv_brc.overlay.OverlayClient`) — the consumer
   side, defaulting to `overlay.peck.to`. `submit(beef, topics)` (JSON
   `x-topics` array + octet-stream BEEF) returns a parsed STEAK with

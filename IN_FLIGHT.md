@@ -9,7 +9,8 @@ py-sdk-bugene FILET: py-sdk#158 (lookup-parser), #159 (internalize-BEEF). peck-o
 ## Sist gjort (2026-06-03, etter PyPI 0.3.0)
 - **Monorepo adopsjons-survey** (workflow): kart over hvor bsv-brc kan dogfood-es — se minne [bsv-brc adopsjons-kart]. peck-web bruker ALLEREDE bsv_brc auth.
 - **Overlay-KLIENT bygget** (`bsv_brc.overlay.OverlayClient`, committet d42f38a master, UNRELEASED→0.4.0): submit/lookup/state/verify_state, default overlay.peck.to, dependency-fri (urllib) + rene parsere for async. **Live-verifisert mot overlay.peck.to**. 193 tester. CHANGELOG [Unreleased].
-- Adopsjons-rekkefølge (Thomas: "alle, men start på 1"): [x] overlay-klient. Neste: quick dogfood-wins (peck-certifier brc052-swap etc.), OP_RETURN/Bitcoin-Schema-bygger, paymail-modul, anchor-klient, ChainTracker.
+- **Bitcom/Bitcoin-Schema-bygger bygget** (`bsv_brc.bitcom`, committet 85b63e0): B/MAP/AIP op_return-bygger (pipe=0x01 0x7c, fikser raw-0x7c-bug) + parser (speiler overlay.peck.to) + AIP via BSM. 210 tester.
+- Adopsjons-rekkefølge (Thomas: "alle, men start på 1"): [x] overlay-klient, [x] OP_RETURN/Bitcoin-Schema-bygger. Neste roadmap-gap: paymail-modul (3× ~600-linjers hand-rull), typed peck-anchor-klient, headers.peck.to ChainTracker, HKDF-salt v2 identitets-helper. ELLER quick dogfood-wins (peck-certifier brc052-swap + re-eksport-fiks, merdata AES).
 
 ## Mål
 OSS-fundament for å bygge sosiale apper på overlay (open-source peck.to). `examples/social_feed.py` = referanse-frøet. Modell (overlay.social): chain-anchor + overlay read-layer (GASP-sync + per-topic Merkle-roots, IKKE SHIP/SLAP) + BRC-100-identitet + 3 skrivekanaler + BRC-77.
