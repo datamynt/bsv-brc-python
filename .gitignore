@@ -9,3 +9,8 @@ build/
 .venv/
 venv/
 .pytest_cache/
+
+# internal working files — not for public repo
+IN_FLIGHT.md
+CLAUDE.md
+.gemini/
