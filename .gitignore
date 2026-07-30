@@ -14,3 +14,12 @@ venv/
 IN_FLIGHT.md
 CLAUDE.md
 .gemini/
+
+# --- interne agent-/dev-filer: aldri i git (public repo) ---
+AGENTS.md
+ORCHESTRATION.md
+RUNBOOK*.md
+CONVERGENCE*.md
+*.privat.md
+.geminirules
+.claude/
