@@ -103,3 +103,38 @@ def derive_signing_key(
 def public_key_from_private(private_key: bytes) -> bytes:
     """Return 33-byte compressed public key from 32-byte private key."""
     return PrivateKey(private_key).public_key().serialize()
+
+
+def derive_signing_public_key(
+    identity_public_key: bytes,
+    security_level: int,
+    protocol: str,
+    key_id: str,
+    counterparty_private_key: bytes | None = None,
+) -> bytes:
+    """
+    BRC-43 signing *public* key derivation — the verifier's side.
+
+    Computes the child public key a counterparty would derive from
+    ``identity_public_key`` without the identity's private key. The HMAC
+    key is the ECDH shared secret between ``counterparty_private_key`` and
+    ``identity_public_key`` (equal to the shared secret the signer used),
+    or ``identity_public_key`` itself in "anyone" mode. This is exactly
+    the inverse of :func:`derive_signing_key`: a signature made with the
+    child private key returned there verifies against the child public
+    key returned here.
+    """
+    hmac_key = (
+        identity_public_key
+        if counterparty_private_key is None
+        else shared_secret(counterparty_private_key, identity_public_key)
+    )
+
+    inv = invoice_number(security_level, protocol, key_id)
+    h = _hmac_sha256(hmac_key, inv)
+
+    h_int = int.from_bytes(h, "big")
+    pub = PublicKey(identity_public_key)
+    h_point = curve_multiply(h_int, curve.g)
+    derived_pub_point = curve_add(pub.point(), h_point)
+    return PublicKey(derived_pub_point).serialize()

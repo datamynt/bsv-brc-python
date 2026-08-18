@@ -19,6 +19,7 @@ open (it ships only the overlay *client* side).
 | `bsv_brc.brc094` | [BRC-94](https://bsv.brc.dev/key-derivation/0094) | Verifiable ECDH shared secrets via Schnorr proof |
 | `bsv_brc.brc104` | [BRC-103/104](https://bsv.brc.dev/peer-to-peer/0104) | ASGI mutual-auth adapter over `bsv.auth` |
 | `bsv_brc.brc105` | [BRC-105](https://bsv.brc.dev/payments/0105) | HTTP 402 micropayment middleware + client |
+| `bsv_brc.brc138` | [BRC-138](https://bsv.brc.dev/peer-to-peer/0138) | Single-use signed proofs — login in one request (`@bsv/auth`-compatible) |
 | `bsv_brc.brc22` | [BRC-22](https://bsv.brc.dev/overlays/0022) | **Server-side** overlay topic submission (`/submit`) |
 | `bsv_brc.brc24` | [BRC-24](https://bsv.brc.dev/overlays/0024) | **Server-side** lookup services — the feed (`/lookup`) |
 | `bsv_brc.brc87` | [BRC-87](https://bsv.brc.dev/overlays/0087) | `tm_`/`ls_` overlay name validation |
@@ -115,6 +116,30 @@ ok = overlay.verify_state("tm_posts", outpoints)     # local state_root == node'
 Async apps can use the pure `build_submit_headers` / `parse_steak` /
 `parse_lookup_answer` / `parse_state` helpers with their own HTTP client.
 
+### BRC-138: Authenticate a request in one shot (login, no handshake)
+
+Single-use signed proofs: prove you hold an identity key in one request,
+without a BRC-103 session. Interoperates with the reference TypeScript
+`@bsv/auth` out of the box (same default protocol `[2, "bsv auth proof"]`):
+
+```python
+from bsv_brc.brc138 import MemorySingleUseStore, create_auth_proof, verify_auth_proof
+
+# Client (e.g. a browser wallet): sign a "login" proof toward the server key
+proof = create_auth_proof(client_identity_privkey, server_identity_pubkey, "login")
+# ...transmit proof.to_dict() (signature = byte values, per spec)...
+
+# Server: shape -> action -> freshness -> signature -> single-use, atomically
+identity = verify_auth_proof(
+    server_identity_privkey, proof, "login",
+    single_use_store=MemorySingleUseStore(),  # SqliteSingleUseStore for persistence
+)
+# identity == client public key -> caller provably holds the key
+```
+
+See [`examples/brc138_auth.py`](examples/brc138_auth.py), and
+`examples/brc138_interop/` for the Python ⇄ TypeScript byte-compat proof.
+
 ### BRC-105: Accept micropayments on any endpoint
 
 ```python
@@ -166,6 +191,7 @@ cert = issue(
 ## Roadmap
 
 - [x] BRC-103/104 — Mutual authentication (ASGI adapter over `bsv.auth`)
+- [x] BRC-138 — Single-use signed proofs (login in one request, `@bsv/auth`-compatible)
 - [x] BRC-22 — Server-side overlay topic submission (`/submit`)
 - [x] BRC-24 + `OverlayEngine` — Lookup services + a runnable overlay node
 - [ ] BRC-35 — Global KVStore over overlay (pending byte-exact interop check)
@@ -174,12 +200,16 @@ cert = issue(
 - [x] Per-topic state root + `GET /state` endpoint — **matches `overlay.peck.to` `/state`**
 - [x] Overlay `OverlayClient` (submit / lookup / state / verify) — defaults to `overlay.peck.to`
 - [x] Optional SPV verify on submit (`OverlayEngine(verify_tx=...)`, injectable ChainTracker)
+- [ ] BRC-118 multipart transport + BRC-121 simple-402 profile for `brc105`
 - [ ] paymail (→ bsv-compat), peck-anchor client + headers.peck.to ChainTracker (peck-infra lib)
-- [ ] GASP-style peer sync + on-chain root anchoring
+- [ ] BRC-76 GASP peer sync / BRC-136 BASM + on-chain root anchoring
 
-Deliberately **out of scope** (see `CHANGELOG.md`): BRC-101 (aspirational,
-no normative behavior), BRC-108 (no Mandala/BRC-92/107 token base),
-BRC-116 (needs an external sCrypt toolchain).
+See [`docs/MODERNIZATION.md`](docs/MODERNIZATION.md) for the full BRC
+ecosystem gap analysis (payments 402 family, BEEF v2, overlay sync).
+
+Out of scope today: SHIP/SLAP (BRC-88) — the overlay.social model is
+GASP/Merkle-roots, not SHIP/SLAP; BRC-120 x402 conformance (frozen external
+spec) and the 1Sat token series (BRC-147/150/159/160) — separate concerns.
 
 ## Development
 
@@ -188,7 +218,8 @@ git clone https://github.com/datamynt/bsv-brc-python.git
 cd bsv-brc-python
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[starlette,dev]"
-pytest -v  # 197 tests
+pytest -v  # 235 tests
+```
 ```
 
 ## License
