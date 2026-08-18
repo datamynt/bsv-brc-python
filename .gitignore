@@ -23,3 +23,7 @@ CONVERGENCE*.md
 *.privat.md
 .geminirules
 .claude/
+
+# interop example deps (npm) and project-local venvs
+node_modules/
+.venv314/

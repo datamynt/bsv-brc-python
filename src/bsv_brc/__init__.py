@@ -12,6 +12,7 @@ Modules:
     brc094       — BRC-94 verifiable ECDH shared secrets (Schnorr proof)
     brc104       — BRC-103/104 mutual auth, ASGI adapter over bsv.auth
     brc105       — BRC-105 HTTP 402 micropayments (middleware + client)
+    brc138       — BRC-138 single-use signed proofs (request authentication)
     brc22        — BRC-22 server-side overlay topic submission (/submit)
     brc24        — BRC-24 server-side lookup services / feed (/lookup)
     brc87        — BRC-87 tm_/ls_ overlay name validation
@@ -25,7 +26,7 @@ extra: ``pip install "bsv-brc[starlette]"``.
 Compatible with @bsv/sdk (TypeScript). License: Open BSV.
 """
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 # Always-available core (no optional dependencies).
 from bsv_brc.brc105.types import (
@@ -59,6 +60,23 @@ from bsv_brc.overlay import (
     SqliteOverlayStorage,
     UnknownServiceError,
 )
+from bsv_brc.brc138 import (
+    DEFAULT_CLOCK_SKEW_MS,
+    DEFAULT_PROTOCOL,
+    DEFAULT_VALIDITY_WINDOW_MS,
+    NONCE_BYTES,
+    AuthProof,
+    AuthProofData,
+    AuthProofError,
+    MemorySingleUseStore,
+    SingleUseStore,
+    SqliteSingleUseStore,
+    check_auth_proof_data,
+    create_auth_proof,
+    generate_nonce,
+    normalize_body,
+    verify_auth_proof,
+)
 
 __all__ = [
     "__version__",
@@ -68,6 +86,22 @@ __all__ = [
     "PricingStrategy",
     "StaticPricing",
     "NonceManager",
+    # BRC-138 single-use signed proofs
+    "AuthProof",
+    "AuthProofData",
+    "AuthProofError",
+    "SingleUseStore",
+    "MemorySingleUseStore",
+    "SqliteSingleUseStore",
+    "DEFAULT_PROTOCOL",
+    "DEFAULT_VALIDITY_WINDOW_MS",
+    "DEFAULT_CLOCK_SKEW_MS",
+    "NONCE_BYTES",
+    "check_auth_proof_data",
+    "create_auth_proof",
+    "generate_nonce",
+    "normalize_body",
+    "verify_auth_proof",
     # BRC-22 overlay (server side)
     "TopicManager",
     "TopicEngine",

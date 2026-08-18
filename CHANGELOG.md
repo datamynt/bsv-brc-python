@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-08-17
+
+### Added
+- **BRC-138 — Single-Use Signed Proofs** (`bsv_brc.brc138`), the first Python
+  implementation of the standard, byte-compatible with the reference
+  TypeScript `@bsv/auth`:
+  - `create_auth_proof` / `verify_auth_proof` over the spec's canonical
+    encoding (newline-delimited auth fields; request payloads bound in via a
+    VarInt length prefix), BRC-42/43 child-key derivation per proof
+    (`protocolID [2, name]`, `keyID = nonce`, `counterparty = verifier`),
+    SHA-256 + DER ECDSA signing (matches `@bsv/sdk` `createSignature`).
+  - `check_auth_proof_data` — pure shape/action/freshness checks (mirrors
+    `checkAuthSigData`), clock-skew tolerance, expiry-bound.
+  - `AuthProof` / `AuthProofData` with the spec's wire form
+    (`signature` as an array of byte values; hex accepted on input for
+    wallet interop).
+  - Single-use stores: `SingleUseStore` ABC + `MemorySingleUseStore`
+    (locked, lazy eviction) + `SqliteSingleUseStore` (atomic
+    `INSERT OR IGNORE` against a unique index; bounded retention).
+  - `AuthProofMiddleware` — optional Starlette/ASGI auth gate
+    (proof via `x-bsv-auth-proof` header or JSON body `proof` member;
+    401 otherwise; sets `scope["bsv_auth_proof"]`).
+  - `crypto.keys.derive_signing_public_key` — the verifier-side counterpart
+    of BRC-43 signing-key derivation.
+  - **Cross-implementation proof**: `examples/brc138_interop/` runs a
+    live 4-way interop check against `@bsv/auth`+`@bsv/sdk` (Python↔Node,
+    bodyless and body-bound), and `tests/test_brc138_interop.py` pins the
+    certified vectors as a Node-free regression test.
+- `docs/MODERNIZATION.md` — full gap analysis of `bsv-brc` vs the current
+  BRC ecosystem (spec set current to 2026-08-12): the payments 402 family
+  (BRC-118 multipart, BRC-120 x402, BRC-121 simple 402), BEEF V2
+  (BRC-96/158), overlay sync (BRC-76 GASP, BRC-136 BASM), identity-adjacent
+  standards, and the corrected BRC-101/108/116 notes.
+
+### Fixed / corrected
+- README/CHANGELOG claims about "out of scope" BRCs were stale and wrong:
+  BRC-101 is *SHIP/SLAP facilitator URL protocols* (not "aspirational"),
+  BRC-108 is the *Identity-Linked Token Protocol* (not Mandala-bound),
+  BRC-116 is *Wallet Permissions and Counterparty Trust* (no sCrypt
+  toolchain involved). Replaced with a current out-of-scope note.
+- The venv note in `CLAUDE.md` is updated: the suite is verified on
+  Python 3.14 + `bsv-sdk` 2.3.3 (197 pre-existing tests stay green).
+
 ## [0.4.0] - 2026-06-03
 
 ### Added

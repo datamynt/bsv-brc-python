@@ -4,12 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "bsv-brc"
-version = "0.4.0"
-description = "Framework adapters for the official bsv.auth (BRC-103/104) plus BRC-52, BRC-94, the BRC-105 HTTP micropayment layer, and a server-side BRC-22 overlay topic-submission framework"
+version = "0.5.0"
+description = "Framework adapters for the official bsv.auth (BRC-103/104) plus BRC-52, BRC-94, BRC-138 single-use auth proofs, the BRC-105 HTTP micropayment layer, and a server-side BRC-22 overlay topic-submission framework"
 readme = "README.md"
 license = {text = "Open BSV License"}
 requires-python = ">=3.10"
-keywords = ["bsv", "brc-52", "brc-94", "brc-105", "identity", "certificates", "micropayments", "402", "schnorr", "secp256k1"]
+keywords = ["bsv", "brc-52", "brc-94", "brc-105", "brc-138", "identity", "certificates", "micropayments", "402", "auth", "schnorr", "secp256k1"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -34,7 +34,7 @@ Repository = "https://github.com/datamynt/bsv-brc-python"
 Issues = "https://github.com/datamynt/bsv-brc-python/issues"
 
 [tool.hatch.build.targets.sdist]
-include = ["src/bsv_brc", "tests", "README.md", "LICENSE", "CHANGELOG.md", "pyproject.toml"]
+include = ["src/bsv_brc", "tests", "docs", "README.md", "LICENSE", "CHANGELOG.md", "pyproject.toml"]
 exclude = [".venv*", "venv", "build", "dist", "**/__pycache__", "*.pyc"]
 
 [tool.hatch.build.targets.wheel]

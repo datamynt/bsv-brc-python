@@ -303,7 +303,7 @@ def test_empty_state_root_matches_live_overlay():
 
 def test_state_root_matches_live_overlay_nonempty_vector():
     # A real cross-implementation vector captured from overlay.peck.to:
-    # these were the 4 live tm_peck-bio-profile outpoints, and the overlay
+    # these were the 4 live tm_social-profile outpoints, and the overlay
     # published this exact stateRoot for that set (GET /state, 2026-06-02).
     # Our state_root reproduces it byte-for-byte — confirming the algorithm,
     # the "txid:vout" form, and the txid (display) orientation all match.
